@@ -16,7 +16,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     private let mlModel = {
         do {
             let config = MLModelConfiguration()
-            return try BillSight_ImageClassifier(configuration: config).model // !!! IMPORTANT: Replace USBillClassifierModel with your model's actual generated class name
+            return try BillSight_ImageClassifier(configuration: config).model
         } catch {
             fatalError("Failed to load Core ML model: \(error)")
         }
@@ -41,20 +41,18 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        setupVision() // Keep setupVision here as it doesn't depend on view bounds for the model itself
+        setupVision()
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
-        // Only setup camera if it hasn't been set up yet
-        // This prevents re-setting up the camera if the view reappears (e.g., from background)
+
         if captureSession == nil {
             setupCamera()
         }
 
-        // Ensure the preview layer frame is updated, especially on first appearance
-        // It's good to keep this in viewDidLayoutSubviews, but this can be a safety
+        // Updates preview layer frame
         videoPreviewLayer?.frame = cameraView.bounds
         print("DEBUG: viewDidAppear - videoPreviewLayer frame set to: \(videoPreviewLayer?.frame ?? .zero)")
     }
@@ -72,7 +70,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             cameraView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         
-        DispatchQueue.main.async { // Ensure this prints AFTER constraints are applied
+        DispatchQueue.main.async {
                     print("DEBUG: setupUI - cameraView bounds: \(self.cameraView.bounds)")
                     print("DEBUG: setupUI - cameraView layer bounds: \(self.cameraView.layer.bounds)")
                 }
@@ -82,7 +80,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         resultLabel.textColor = .white
         resultLabel.font = .systemFont(ofSize: 30, weight: .bold)
         resultLabel.numberOfLines = 0 // Allow multiple lines
-        resultLabel.backgroundColor = UIColor.black.withAlphaComponent(0.2) // Semi-transparent background
+        resultLabel.backgroundColor = UIColor.black.withAlphaComponent(0.2)
         view.addSubview(resultLabel)
         resultLabel.translatesAutoresizingMaskIntoConstraints = false 
         NSLayoutConstraint.activate([
@@ -152,7 +150,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             guard let self = self else { return }
 
             self.captureSession.startRunning()
-            // Now you can safely access self.captureSession
             print("DEBUG: AVCaptureSession started running. Is session running? \(self.captureSession.isRunning)")
         }
     }
@@ -160,13 +157,13 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         // Update the preview layer frame if the view's bounds change (e.g., orientation change)
-        videoPreviewLayer?.frame = cameraView.bounds // CORRECTED LINE
+        videoPreviewLayer?.frame = cameraView.bounds
         print("DEBUG: viewDidLayoutSubviews - videoPreviewLayer frame updated to: \(videoPreviewLayer?.frame ?? .zero)")
     }
 
     // MARK: - Vision Setup
     private func setupVision() {
-        // Create a VNCoreMLModel from your Core ML model
+        // Create a VNCoreMLModel from Core ML Model
         guard let visionModel = try? VNCoreMLModel(for: mlModel) else {
             fatalError("Failed to create VNCoreMLModel from your model.")
         }
@@ -177,7 +174,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         })
 
         // Resize the image to match the model's input size (if necessary)
-        // Make sure this matches your CreateML model's expected image size
         // CreateML models typically expect 299x299 or 224x224.
         classificationRequest.imageCropAndScaleOption = .centerCrop // Or .scaleFill, .scaleFit
 
@@ -218,8 +214,8 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                 print("No classifications found.")
                 return
             }
-
-            // --- ADDED DEBUGGING CODE HERE ---
+                                  
+            // Debugging code
             print("\n--- NEW CLASSIFICATION FRAME ---")
             if classifications.isEmpty {
                 print("DEBUG: Classifications array is empty.")
@@ -228,7 +224,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     print("DEBUG: Top \(index + 1): \(classification.identifier) Confidence: \(String(format: "%.4f", classification.confidence))")
                 }
             }
-            // --- END ADDED DEBUGGING CODE ---
 
             if let topClassification = classifications.first {
                 let confidenceThreshold: Float = 0.6 // Adjust this value as needed
@@ -257,9 +252,9 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         speechSynthesizer.stopSpeaking(at: .immediate)
 
         let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate // You can adjust this
-        utterance.pitchMultiplier = 1.0 // You can adjust this
-        utterance.volume = 1.0 // You can adjust this
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate // Can be adjusted
+        utterance.pitchMultiplier = 1.0 // Can be adjusted
+        utterance.volume = 1.0 // Can be adjusted
 
         speechSynthesizer.speak(utterance)
         lastSpokenResult = text // Store the last spoken result
